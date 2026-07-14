@@ -2,12 +2,12 @@
 <Container version="2">
   <Name>opencode-mobile</Name>
   <Repository>ghcr.io/emenblade/opencode-mobile:latest</Repository>
-  <Registry>https://github.com/emenblade/undraidopencode/pkgs/container/opencode-mobile</Registry>
+  <Registry>https://github.com/emenblade/unraidopencode/pkgs/container/opencode-mobile</Registry>
   <Network>bridge</Network>
   <MyIP/>
   <Shell>bash</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/emenblade/undraidopencode</Support>
+  <Support>https://github.com/emenblade/unraidopencode</Support>
   <Project>https://opencode.ai</Project>
   <Overview>Runs opencode (open-source AI coding agent CLI) with its built-in web UI, so you can drive it from a phone browser over WireGuard. Image is built and published automatically by GitHub Actions on every change plus a daily rebuild. Do not expose the WebUI port to the internet; access it via WireGuard VPN into your LAN.</Overview>
   <Category>Tools: Productivity:</Category>

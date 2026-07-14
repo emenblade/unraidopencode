@@ -35,7 +35,7 @@ not just `packages: write`). After the workflow runs once:
 1. Go to your GitHub profile → **Packages** → `opencode-mobile`.
 2. **Package settings** → **Danger Zone** → **Change visibility** → Public.
 3. While there, under "Manage Actions access" / repo connection, link it to
-   `emenblade/undraidopencode` so it shows up on the repo page too.
+   `emenblade/unraidopencode` so it shows up on the repo page too.
 
 Without this, Unraid's pull will fail with a 403/denied error since it has
 no registry credentials configured. (Alternative if you'd rather keep it
