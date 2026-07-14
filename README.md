@@ -14,21 +14,38 @@ prebuilt binaries have known issues on musl libc, so slim-Debian is the more
 reliable "lightweight" choice. No build toolchain, no desktop app, nothing
 beyond opencode itself and the few CLI tools it shells out to (git, ripgrep).
 
-## Quick start
+This setup assumes you're deploying to **Unraid** and reaching it by
+**WireGuard VPN into your home network** — so there's no Tailscale sidecar or
+public-facing reverse proxy here. Once you're on the VPN, your phone can just
+reach the Unraid box directly like any other LAN device.
 
-```bash
-cp .env.example .env
-# generate a real password:
-openssl rand -base64 24
-# paste it into .env as OPENCODE_SERVER_PASSWORD
+## Deploying on Unraid
 
-mkdir -p workspace   # put the code you want opencode to work on in here
-docker compose up -d --build
-```
+1. Put this project somewhere on your array, e.g.:
+   ```
+   /mnt/user/appdata/opencode-mobile/
+   ```
+   (Copy the repo there, or `git clone` it if Unraid has git available — an
+   SCP/rsync from your regular machine works too.)
 
-By default the UI is bound to `127.0.0.1:4096` on the host only. Pick one of
-the three access modes below before you actually try to reach it from your
-phone.
+2. SSH into Unraid and from that directory:
+   ```bash
+   cp .env.example .env
+   openssl rand -base64 24        # generate a real password
+   # edit .env: set OPENCODE_SERVER_PASSWORD, and APPDATA_PATH/WORKSPACE_PATH
+   # e.g. APPDATA_PATH=/mnt/user/appdata/opencode-mobile/data
+   #      WORKSPACE_PATH=/mnt/user/projects   (wherever your code actually lives)
+
+   docker compose up -d --build
+   ```
+   Unraid 6.12+ ships the `docker compose` CLI plugin by default. If you'd
+   rather manage this from the GUI instead of SSH, install **Docker Compose
+   Manager** (by ich777) from Community Applications and paste these compose
+   files in there instead.
+
+3. **Do not port-forward 4096 on your router.** The whole point of the
+   WireGuard setup is that this stays LAN-only and reachable only once
+   you're on the VPN.
 
 ## First-time setup: connect an AI provider
 
@@ -41,60 +58,36 @@ docker exec -it opencode-mobile opencode auth login
 
 This is a normal opencode login flow (API key or device-code OAuth) — if it
 prints a URL, you can open that URL on any device, it doesn't have to be the
-same machine. Credentials are written to the `opencode-config` volume, so
-they persist across container restarts/rebuilds.
+same machine. Credentials land under `$APPDATA_PATH/config`, so they persist
+across container restarts/rebuilds and get swept up in appdata backups.
 
-## Accessing it from your phone — three modes
+## Using it from your phone
 
-**1. Same Wi-Fi / LAN only (simplest)**
-Set `BIND_ADDRESS=0.0.0.0` in `.env`, restart (`docker compose up -d`), then
-browse to `http://<host-lan-ip>:4096` from your phone while on the same
-network. Nothing leaves your network, but anyone else on that Wi-Fi can also
-reach it if they get the URL — the basic-auth password is what protects it.
-
-**2. Tailscale (recommended)**
-Keeps the container off the public internet entirely while still being
-reachable from your phone anywhere:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.tailscale.yml up -d
-```
-
-Set `TS_AUTHKEY` in `.env` first (get one from the
-[Tailscale admin console](https://login.tailscale.com/admin/settings/keys)).
-Then, with the Tailscale app installed on your phone, browse to
-`http://opencode:4096` (MagicDNS) or the tailnet IP shown in the console.
-
-**3. Public internet via reverse proxy**
-Only if you want it reachable with no VPN app on your phone. Requires a
-domain pointed at the host and ports 80/443 open:
-
-```bash
-# set DOMAIN=yourdomain.example in .env first
-docker compose -f docker-compose.yml -f docker-compose.public.yml up -d
-```
-
-Caddy automatically provisions TLS for `DOMAIN` and proxies to opencode,
-which still enforces HTTP Basic Auth behind the encrypted connection. Use a
-strong, unique password in this mode — opencode's agent can execute shell
-commands in `/workspace`, so treat exposed access like SSH access.
+1. Connect to your home network over WireGuard as usual.
+2. Find your Unraid box's LAN IP (shown at the top of the Unraid web UI, or
+   under Settings → Network Settings).
+3. Browse to `http://<unraid-ip>:4096` and log in with the Basic Auth
+   credentials from `.env`.
 
 ## Persistence
 
-- `./workspace` — the code/files opencode operates on (bind-mounted, so it's
-  just a normal directory on the host)
-- `opencode-config` / `opencode-data` (named volumes) — provider credentials,
-  settings, and session history
-
-Delete the named volumes (`docker compose down -v`) to fully reset auth and
-session state.
+- `$WORKSPACE_PATH` — the code/files opencode operates on. Point this at a
+  real share (e.g. `/mnt/user/projects`) rather than leaving the container's
+  own throwaway default.
+- `$APPDATA_PATH/config` and `$APPDATA_PATH/data` — provider credentials,
+  settings, and session history. Defaults to `./appdata` next to the compose
+  file; on Unraid, set this to somewhere under `/mnt/user/appdata/` so the
+  CA Backup/Restore plugin picks it up.
 
 ## Notes
 
 - The container runs as a non-root `opencode` user.
-- `OPENCODE_SERVER_PASSWORD` enables HTTP Basic Auth on the server; without
-  it the API/UI is unauthenticated, which is only acceptable behind
-  Tailscale or another trusted network boundary you already control.
-- To use a different opencode version, edit the `npm install -g
-  opencode-ai@latest` line in the `Dockerfile` to pin a version, then
+- `OPENCODE_SERVER_PASSWORD` enables HTTP Basic Auth on the server. Keep it
+  set even though WireGuard already gates access — it's cheap defense in
+  depth against anything else on your LAN.
+- opencode's agent can execute shell commands against whatever is mounted at
+  `/workspace`, so treat access to this container like SSH access to that
+  data.
+- To pin a specific opencode version instead of always tracking latest, edit
+  the `npm install -g opencode-ai@latest` line in the `Dockerfile`, then
   `docker compose build`.
