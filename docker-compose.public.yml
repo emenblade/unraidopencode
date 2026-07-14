@@ -1,0 +1,36 @@
+# Overlay: expose opencode to the public internet behind Caddy, which
+# terminates TLS automatically (Let's Encrypt) for $DOMAIN. opencode's own
+# HTTP Basic Auth (OPENCODE_SERVER_PASSWORD) still protects the app itself.
+#
+# Requirements:
+#   - DOMAIN in .env must have a DNS A/AAAA record pointing at this host
+#   - Ports 80 and 443 open/forwarded to this host
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.public.yml up -d
+
+services:
+  opencode:
+    ports: []
+    expose:
+      - "4096"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: opencode-caddy
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - opencode
+
+volumes:
+  caddy-data:
+  caddy-config:
