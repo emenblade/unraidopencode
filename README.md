@@ -62,7 +62,7 @@ manually: **Actions tab → Build and publish image → Run workflow**.
    cp .env.example .env
    openssl rand -base64 24        # generate a real password
    # edit .env: set OPENCODE_SERVER_PASSWORD, and APPDATA_PATH/WORKSPACE_PATH
-   # e.g. APPDATA_PATH=/mnt/user/appdata/opencode-mobile/data
+   # e.g. APPDATA_PATH=/mnt/user/appdata/opencode-mobile
    #      WORKSPACE_PATH=/mnt/user/projects   (wherever your code actually lives)
 
    docker compose pull
@@ -86,8 +86,8 @@ cp unraid-template.xml /boot/config/plugins/dockerMan/templates-user/opencode-mo
 Go to **Docker → Add Container**, pick `opencode-mobile` from the template
 dropdown, and fill in the Server Password field (everything else has sane
 Unraid-style defaults: `/mnt/user/projects` for the workspace,
-`/mnt/user/appdata/opencode-mobile/{config,data}` for persisted state, port
-4096). Apply, then run `opencode auth login` via `docker exec` as below.
+`/mnt/user/appdata/opencode-mobile` for persisted state, port 4096). Apply,
+then run `opencode auth login` via `docker exec` as below.
 
 For fully hands-off updates, install **Auto Update Applications** (by
 Squid) from Community Applications and enable it for this container —
@@ -114,8 +114,8 @@ files it creates owned by the wrong user.
 
 This is a normal opencode login flow (API key or device-code OAuth) — if it
 prints a URL, you can open that URL on any device, it doesn't have to be the
-same machine. Credentials land under `$APPDATA_PATH/config`, so they persist
-across container restarts/updates and get swept up in appdata backups.
+same machine. Credentials land under `$APPDATA_PATH`, so they persist across
+container restarts/updates and get swept up in appdata backups.
 
 ## Using it from your phone
 
@@ -130,20 +130,25 @@ across container restarts/updates and get swept up in appdata backups.
 - `$WORKSPACE_PATH` — the code/files opencode operates on. Point this at a
   real share (e.g. `/mnt/user/projects`) rather than leaving the container's
   own throwaway default.
-- `$APPDATA_PATH/config` and `$APPDATA_PATH/data` — provider credentials,
-  settings, and session history. Defaults to `./appdata` next to the compose
-  file; on Unraid, set this to somewhere under `/mnt/user/appdata/` so the
-  CA Backup/Restore plugin picks it up.
+- `$APPDATA_PATH` — opencode's whole home directory: provider credentials,
+  settings, and session history all live under here, however opencode
+  chooses to lay them out internally. Defaults to `./appdata` next to the
+  compose file; on Unraid, set this to somewhere under `/mnt/user/appdata/`
+  so the CA Backup/Restore plugin picks it up.
 
 ## Notes
 
 - The actual opencode process runs as a non-root `opencode` user. The
-  container's entrypoint starts as root just long enough to fix ownership
-  on `$APPDATA_PATH/{config,data}` (Docker/Unraid auto-create missing
-  bind-mount host directories as root, which would otherwise block a
-  non-root process from writing into them) and on the `/workspace` mount
-  point itself, then drops privileges before running anything else. This
-  is automatic — no manual `chown` needed on the host side.
+  container's entrypoint starts as root just long enough to `chown -R` the
+  entire `$APPDATA_PATH` and `/workspace` mounts (Docker/Unraid auto-create
+  missing bind-mount host directories — and their parent directories — as
+  root, which would otherwise block a non-root process from writing into
+  them), then drops privileges before running anything else. This is
+  automatic — no manual `chown` needed on the host side. `$APPDATA_PATH` is
+  mounted as opencode's whole home directory rather than individual
+  subpaths, specifically so this covers whatever internal directories
+  opencode creates (config, data, state, cache, ...) without having to
+  enumerate them one at a time.
 - `OPENCODE_SERVER_PASSWORD` enables HTTP Basic Auth on the server. Keep it
   set even though WireGuard already gates access — it's cheap defense in
   depth against anything else on your LAN.

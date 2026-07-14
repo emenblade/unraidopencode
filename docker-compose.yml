@@ -12,5 +12,4 @@ services:
       - "${BIND_ADDRESS:-0.0.0.0}:${OPENCODE_PORT:-4096}:4096"
     volumes:
       - ${WORKSPACE_PATH:-./workspace}:/workspace
-      - ${APPDATA_PATH:-./appdata}/config:/home/opencode/.config
-      - ${APPDATA_PATH:-./appdata}/data:/home/opencode/.local/share
+      - ${APPDATA_PATH:-./appdata}:/home/opencode

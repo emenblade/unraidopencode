@@ -19,9 +19,7 @@ RUN useradd --create-home --shell /bin/bash opencode \
 
 WORKDIR /workspace
 
-ENV HOME=/home/opencode \
-    XDG_CONFIG_HOME=/home/opencode/.config \
-    XDG_DATA_HOME=/home/opencode/.local/share
+ENV HOME=/home/opencode
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
