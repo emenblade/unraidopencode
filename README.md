@@ -11,8 +11,12 @@ gotty, etc.) needed.
 
 Base image is `node:22-bookworm-slim` (~200MB) rather than Alpine — opencode's
 prebuilt binaries have known issues on musl libc, so slim-Debian is the more
-reliable "lightweight" choice. No build toolchain, no desktop app, nothing
-beyond opencode itself and the few CLI tools it shells out to (git, ripgrep).
+reliable "lightweight" choice. No desktop app, no heavy build toolchain — just
+opencode plus a general-purpose CLI toolkit for agent-driven work: git, gh
+(GitHub CLI), ripgrep, python3/pip/venv, p7zip, jq, unzip/zip, sqlite3, and
+basics like nano/less/tree. `pip install` works without extra flags —
+`PIP_BREAK_SYSTEM_PACKAGES=1` is set so opencode doesn't need to know about
+Debian's PEP 668 restriction to install packages.
 
 This setup assumes you're deploying to **Unraid** and reaching it by
 **WireGuard VPN into your home network** — so there's no Tailscale sidecar or
@@ -155,6 +159,9 @@ container restarts/updates and get swept up in appdata backups.
 - opencode's agent can execute shell commands against whatever is mounted at
   `/workspace`, so treat access to this container like SSH access to that
   data.
+- `GITHUB_TOKEN`, if set, is picked up automatically by both `git` (via the
+  entrypoint's credential helper setup) and the `gh` CLI (which reads
+  `GITHUB_TOKEN`/`GH_TOKEN` natively) — no separate `gh auth login` needed.
 - Every image is also tagged with its commit, e.g.
   `ghcr.io/emenblade/opencode-mobile:sha-<commit>`. To pin instead of
   tracking `latest`, use one of those tags in `docker-compose.yml` (or the
