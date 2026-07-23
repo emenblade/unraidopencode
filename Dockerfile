@@ -9,7 +9,13 @@ FROM node:22-bookworm-slim
 # chromium + fonts-liberation: headless rendering of web pages to screenshots
 # (Debian's chromium package pulls its own required shared libs automatically;
 # fonts-liberation is added explicitly since --no-install-recommends would
-# otherwise skip it, which would render text as missing glyphs/tofu boxes)
+# otherwise skip it, which would render text as missing glyphs/tofu boxes);
+# build-essential + python3-dev: compile native npm/pip packages that don't
+# ship prebuilt binaries instead of failing outright;
+# postgresql-client/default-mysql-client/redis-tools: DB/cache CLIs so the
+# agent can inspect whatever a web project is actually talking to;
+# iputils-ping/dnsutils/iproute2: basic network debugging;
+# vim/rsync/imagemagick/httpie: general dev-environment utility
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         ca-certificates \
@@ -21,15 +27,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
         python3-pip \
         python3-venv \
+        python3-dev \
+        build-essential \
         p7zip-full \
         jq \
         unzip \
         zip \
         sqlite3 \
         nano \
+        vim \
         less \
         tree \
         procps \
+        rsync \
+        httpie \
+        imagemagick \
+        iputils-ping \
+        dnsutils \
+        iproute2 \
+        postgresql-client \
+        default-mysql-client \
+        redis-tools \
         poppler-utils \
         tesseract-ocr \
         chromium \
@@ -46,7 +64,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && apt-get update && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g opencode-ai@latest && npm cache clean --force
+# pnpm/yarn: most web projects pin one of these instead of npm;
+# typescript: global tsc fallback
+RUN npm install -g opencode-ai@latest pnpm yarn typescript && npm cache clean --force
 
 RUN useradd --create-home --shell /bin/bash opencode \
     && mkdir -p /workspace \

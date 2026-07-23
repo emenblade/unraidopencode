@@ -9,28 +9,38 @@ It works because opencode ships its own touch-friendly web interface —
 underlying API; there's no separate terminal-in-browser wrapper (ttyd,
 gotty, etc.) needed.
 
-Base image is `node:22-bookworm-slim` (~200MB) rather than Alpine — opencode's
-prebuilt binaries have known issues on musl libc, so slim-Debian is the more
-reliable "lightweight" choice. No desktop app, no heavy build toolchain — just
-opencode plus a general-purpose CLI toolkit for agent-driven work: git, gh
-(GitHub CLI), ripgrep, python3/pip/venv, p7zip, jq, unzip/zip, sqlite3,
-poppler-utils (`pdftotext` — cleaner text/table extraction than fighting
-PDF.js output), tesseract-ocr (for image-only PDFs with no text layer), and
-basics like nano/less/tree. `pip install` works without extra flags —
-`PIP_BREAK_SYSTEM_PACKAGES=1` is set so opencode doesn't need to know about
-Debian's PEP 668 restriction to install packages.
+Base image is `node:22-bookworm-slim` — opencode's prebuilt binaries have
+known issues on musl libc, so Debian is the more reliable choice over Alpine.
+This deliberately isn't a minimal image: since multiple opencode sessions can
+share the same running container, the philosophy is a well-equipped dev
+environment with tools already in place, rather than lightweight-by-default
+and having the agent spend time/tokens discovering and installing something
+mid-task. Currently installed, beyond opencode itself:
 
-One deliberate exception to "lightweight": `chromium` (plus `fonts-liberation`
-and `Pillow`, pinned to 12.3.0) is installed for headless web page rendering
-— screenshotting HTML to PNG, e.g. for a `render_previews.py`-style pipeline
-that runs a local `python3 -m http.server`, drives Chromium at it, and
-post-processes the screenshot with Pillow. Chromium is a genuinely large
-addition (call it +300-500MB) compared to everything else in this image —
-worth it for that capability, but if you never need page rendering it's a
-lot of image just sitting there. `shm_size: 256m` is set on the compose
-service (and `--shm-size=256m` via the Unraid template's ExtraParams) since
-Chromium in a container reliably crashes against Docker's default 64MB
-`/dev/shm` on anything but the most trivial pages.
+- **Core**: git, gh (GitHub CLI, auto-picks up `GITHUB_TOKEN`), ripgrep
+- **Python**: python3/pip/venv (`PIP_BREAK_SYSTEM_PACKAGES=1` is set so `pip
+  install` works without extra flags), Pillow (pinned to 12.3.0)
+- **Node/web**: pnpm and yarn (global, alongside npm — most projects pin one
+  of these), typescript (global `tsc`)
+- **Build toolchain**: build-essential + python3-dev, so native npm/pip
+  packages that need to compile don't just fail outright
+- **DB/cache clients**: postgresql-client (psql), default-mysql-client
+  (mysql), redis-tools (redis-cli) — for inspecting whatever a web project is
+  actually talking to
+- **Documents**: poppler-utils (`pdftotext` — cleaner text/table extraction
+  than fighting PDF.js output), tesseract-ocr (image-only PDFs with no text
+  layer), p7zip-full, unzip/zip
+- **Web page rendering**: chromium + fonts-liberation, for headless
+  screenshotting (e.g. a `render_previews.py`-style pipeline: serve templates
+  with `python3 -m http.server`, drive Chromium at them, crop with Pillow).
+  This and the build toolchain are the two genuinely large additions here —
+  chromium alone is comparable in size to everything else in this image
+  combined. `shm_size: 256m` is set on the compose service (and
+  `--shm-size=256m` via the Unraid template's ExtraParams) since Chromium in
+  a container reliably crashes against Docker's default 64MB `/dev/shm` on
+  anything but the most trivial pages.
+- **Networking/utility**: iputils-ping, dnsutils, iproute2, jq, sqlite3,
+  vim/nano, less, tree, procps, rsync, httpie, imagemagick
 
 This setup assumes you're deploying to **Unraid** and reaching it by
 **WireGuard VPN into your home network** — so there's no Tailscale sidecar or
