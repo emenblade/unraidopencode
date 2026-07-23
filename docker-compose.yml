@@ -15,3 +15,4 @@ services:
     volumes:
       - ${WORKSPACE_PATH:-./workspace}:/workspace
       - ${APPDATA_PATH:-./appdata}:/home/opencode
+      - ${SHARE_PATH:-./share}:/workspace/share
