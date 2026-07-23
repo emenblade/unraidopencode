@@ -9,10 +9,38 @@ It works because opencode ships its own touch-friendly web interface —
 underlying API; there's no separate terminal-in-browser wrapper (ttyd,
 gotty, etc.) needed.
 
-Base image is `node:22-bookworm-slim` (~200MB) rather than Alpine — opencode's
-prebuilt binaries have known issues on musl libc, so slim-Debian is the more
-reliable "lightweight" choice. No build toolchain, no desktop app, nothing
-beyond opencode itself and the few CLI tools it shells out to (git, ripgrep).
+Base image is `node:22-bookworm-slim` — opencode's prebuilt binaries have
+known issues on musl libc, so Debian is the more reliable choice over Alpine.
+This deliberately isn't a minimal image: since multiple opencode sessions can
+share the same running container, the philosophy is a well-equipped dev
+environment with tools already in place, rather than lightweight-by-default
+and having the agent spend time/tokens discovering and installing something
+mid-task. Currently installed, beyond opencode itself:
+
+- **Core**: git, gh (GitHub CLI, auto-picks up `GITHUB_TOKEN`), ripgrep
+- **Python**: python3/pip/venv (`PIP_BREAK_SYSTEM_PACKAGES=1` is set so `pip
+  install` works without extra flags), Pillow (pinned to 12.3.0)
+- **Node/web**: pnpm and yarn (global, alongside npm — most projects pin one
+  of these), typescript (global `tsc`)
+- **Build toolchain**: build-essential + python3-dev, so native npm/pip
+  packages that need to compile don't just fail outright
+- **DB/cache clients**: postgresql-client (psql), default-mysql-client
+  (mysql), redis-tools (redis-cli) — for inspecting whatever a web project is
+  actually talking to
+- **Documents**: poppler-utils (`pdftotext` — cleaner text/table extraction
+  than fighting PDF.js output), tesseract-ocr (image-only PDFs with no text
+  layer), p7zip-full, unzip/zip
+- **Web page rendering**: chromium + fonts-liberation, for headless
+  screenshotting (e.g. a `render_previews.py`-style pipeline: serve templates
+  with `python3 -m http.server`, drive Chromium at them, crop with Pillow).
+  This and the build toolchain are the two genuinely large additions here —
+  chromium alone is comparable in size to everything else in this image
+  combined. `shm_size: 256m` is set on the compose service (and
+  `--shm-size=256m` via the Unraid template's ExtraParams) since Chromium in
+  a container reliably crashes against Docker's default 64MB `/dev/shm` on
+  anything but the most trivial pages.
+- **Networking/utility**: iputils-ping, dnsutils, iproute2, jq, sqlite3,
+  vim/nano, less, tree, procps, rsync, httpie, imagemagick
 
 This setup assumes you're deploying to **Unraid** and reaching it by
 **WireGuard VPN into your home network** — so there's no Tailscale sidecar or
@@ -155,6 +183,9 @@ container restarts/updates and get swept up in appdata backups.
 - opencode's agent can execute shell commands against whatever is mounted at
   `/workspace`, so treat access to this container like SSH access to that
   data.
+- `GITHUB_TOKEN`, if set, is picked up automatically by both `git` (via the
+  entrypoint's credential helper setup) and the `gh` CLI (which reads
+  `GITHUB_TOKEN`/`GH_TOKEN` natively) — no separate `gh auth login` needed.
 - Every image is also tagged with its commit, e.g.
   `ghcr.io/emenblade/opencode-mobile:sha-<commit>`. To pin instead of
   tracking `latest`, use one of those tags in `docker-compose.yml` (or the
