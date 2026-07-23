@@ -26,4 +26,5 @@
   <Config Name="Server Username" Target="OPENCODE_SERVER_USERNAME" Default="opencode" Mode="" Description="HTTP Basic Auth username" Type="Variable" Display="always" Required="false" Mask="false">opencode</Config>
   <Config Name="Timezone" Target="TZ" Default="UTC" Mode="" Description="Timezone" Type="Variable" Display="advanced-hide" Required="false" Mask="false">UTC</Config>
   <Config Name="GitHub Token" Target="GITHUB_TOKEN" Default="" Mode="" Description="GitHub Personal Access Token (classic, repo scope) for git push/pull from inside the container" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="Share" Target="/workspace/share" Default="/mnt/user/share" Mode="rw" Description="Share folder for exchanging files between the container and other systems (e.g., transfer outputs, configs)" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/share</Config>
 </Container>
