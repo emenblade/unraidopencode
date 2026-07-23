@@ -70,9 +70,14 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && apt-get update && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
+# opencode-ai: its postinstall script downloads a native binary via an inner
+# npm install, which can conflict when other packages are installed in the
+# same RUN layer — keep it isolated
+RUN npm install -g opencode-ai@latest && npm cache clean --force
+
 # pnpm/yarn: most web projects pin one of these instead of npm;
 # typescript: global tsc fallback
-RUN npm install -g opencode-ai@latest pnpm yarn typescript && npm cache clean --force
+RUN npm install -g pnpm yarn typescript && npm cache clean --force
 
 RUN useradd --create-home --shell /bin/bash opencode \
     && mkdir -p /workspace \
