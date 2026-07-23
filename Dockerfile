@@ -75,9 +75,11 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 # same RUN layer — keep it isolated
 RUN npm install -g opencode-ai@latest && npm cache clean --force
 
-# pnpm/yarn: most web projects pin one of these instead of npm;
+# pnpm: most web projects use it instead of npm;
 # typescript: global tsc fallback
-RUN npm install -g pnpm yarn typescript && npm cache clean --force
+# (yarn is already pre-installed in the node:22-bookworm-slim base image)
+RUN npm install -g pnpm && npm cache clean --force
+RUN npm install -g typescript && npm cache clean --force
 
 RUN useradd --create-home --shell /bin/bash opencode \
     && mkdir -p /workspace \
