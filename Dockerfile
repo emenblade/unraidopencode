@@ -17,7 +17,8 @@ FROM node:22-bookworm-slim
 # iputils-ping/dnsutils/iproute2: basic network debugging;
 # wget/tmux: simple download + terminal multiplexer for interactive/dev use;
 # fd-find/pipx: fast find alternative + isolated Python CLI app installer;
-# uv/ruff (pip): Astral's fast Python package manager and linter/formatter
+# uv/ruff (pip): Astral's fast Python package manager and linter/formatter;
+# aiosmtpd (pip): local SMTP test server for email-flow testing
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         ca-certificates \
@@ -59,7 +60,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fd-find \
         pipx \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install --break-system-packages Pillow==12.3.0 uv ruff
+    && pip install --break-system-packages Pillow==12.3.0 uv ruff aiosmtpd
+
+# crane: container registry CLI (go-containerregistry) — inspect/push/pull
+# image contents without a Docker daemon
+RUN curl -fsSL https://github.com/google/go-containerregistry/releases/download/v0.22.1/go-containerregistry_Linux_x86_64.tar.gz \
+        | tar -xz -C /usr/local/bin crane \
+    && chmod +x /usr/local/bin/crane
 
 # GitHub CLI - not in Debian's default repos, needs its own apt source
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
